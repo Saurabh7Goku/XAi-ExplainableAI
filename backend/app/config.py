@@ -48,7 +48,7 @@ class Settings(BaseSettings):
     allowed_extensions: Any = [".jpg", ".jpeg", ".png", ".webp"]
     
     # CORS
-    cors_origins: Any = ["http://localhost:3000", "http://127.0.0.1:3000"]
+    cors_origins: Any = ["http://localhost:3000", "http://127.0.0.1:3000", "https://x-ai-explainable-ai.vercel.app"]
     
     # Logging
     log_level: str = "INFO"
