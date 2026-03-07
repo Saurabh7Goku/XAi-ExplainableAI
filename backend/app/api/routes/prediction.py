@@ -5,6 +5,7 @@ from typing import Dict, Any
 import json
 from fastapi import APIRouter, File, UploadFile, Depends, HTTPException
 from fastapi.responses import StreamingResponse
+from starlette.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
 from PIL import Image
 
@@ -196,59 +197,75 @@ async def predict_disease_stream(
             }) + "\n"
 
             # 2. LLM Report Phase (MEDIUM)
-            report_start = time.time()
-            report = llm_service.generate_farmer_report(
-                disease_name=predicted_class,
-                symptoms=disease_info.get('symptoms', []),
-                treatments=disease_info.get('treatments', []),
-                confidence_score=confidence
-            )
-            report_time = (time.time() - report_start) * 1000
-
-            # Save report to DB
             try:
-                llm_repo = LLMReportRepository(db)
-                llm_repo.create({
-                    'prediction_id': prediction_id,
-                    'disease_name': predicted_class,
-                    'confidence_score': confidence,
-                    'report_content': report,
-                    'llm_provider': 'gemini',
-                    'generation_time_ms': report_time
-                })
-            except Exception as e:
-                logger.warning(f"Failed to save streaming report to DB: {str(e)}")
+                report_start = time.time()
+                # Run sync LLM call in a thread pool to avoid blocking async loop
+                report = await run_in_threadpool(
+                    llm_service.generate_farmer_report,
+                    disease_name=predicted_class,
+                    symptoms=disease_info.get('symptoms', []),
+                    treatments=disease_info.get('treatments', []),
+                    confidence_score=confidence
+                )
+                report_time = (time.time() - report_start) * 1000
 
-            yield json.dumps({
-                "type": "report",
-                "report": report
-            }) + "\n"
+                # Save report to DB (Non-blocking)
+                try:
+                    llm_repo = LLMReportRepository(db)
+                    llm_repo.create({
+                        'prediction_id': prediction_id,
+                        'disease_name': predicted_class,
+                        'confidence_score': confidence,
+                        'report_content': report,
+                        'llm_provider': 'gemini',
+                        'generation_time_ms': report_time
+                    })
+                except Exception as e:
+                    logger.warning(f"Failed to save streaming report to DB: {str(e)}")
+
+                yield json.dumps({
+                    "type": "report",
+                    "report": report
+                }) + "\n"
+            except Exception as e:
+                logger.error(f"LLM report phase failed: {str(e)}")
+                yield json.dumps({"type": "report", "report": "Expert analysis currently unavailable."}) + "\n"
 
             # 3. XAI/LIME Phase (SLOW)
-            explanation_class, lime_explanation = get_lime_explainer().explain_image(file_path)
-            explanation_path = file_service.save_explanation_image(
-                lime_explanation, f"lime_{filename}"
-            )
-
-            # Update prediction with LIME path
             try:
-                if prediction_id:
-                    prediction.lime_explanation_path = explanation_path
-                    db.commit()
+                # Run sync LIME call in a thread pool
+                explainer = get_lime_explainer()
+                explanation_class, lime_explanation = await run_in_threadpool(
+                    explainer.explain_image,
+                    image_path=file_path
+                )
+                
+                explanation_path = file_service.save_explanation_image(
+                    lime_explanation, f"lime_{filename}"
+                )
+
+                # Update prediction with LIME path
+                try:
+                    if prediction_id:
+                        prediction.lime_explanation_path = explanation_path
+                        db.commit()
+                except Exception as e:
+                    logger.warning(f"Failed to update LIME path in DB: {str(e)}")
+
+                # Convert to base64
+                lime_pil = Image.fromarray((lime_explanation * 255).astype('uint8'))
+                buffer = io.BytesIO()
+                lime_pil.save(buffer, format='PNG')
+                lime_base64 = base64.b64encode(buffer.getvalue()).decode()
+
+                yield json.dumps({
+                    "type": "explanation",
+                    "lime_explanation": lime_base64,
+                    "processing_time_ms": (time.time() - start_time) * 1000
+                }) + "\n"
             except Exception as e:
-                logger.warning(f"Failed to update LIME path in DB: {str(e)}")
-
-            # Convert to base64
-            lime_pil = Image.fromarray((lime_explanation * 255).astype('uint8'))
-            buffer = io.BytesIO()
-            lime_pil.save(buffer, format='PNG')
-            lime_base64 = base64.b64encode(buffer.getvalue()).decode()
-
-            yield json.dumps({
-                "type": "explanation",
-                "lime_explanation": lime_base64,
-                "processing_time_ms": (time.time() - start_time) * 1000
-            }) + "\n"
+                logger.error(f"LIME explanation phase failed: {str(e)}")
+                yield json.dumps({"type": "explanation", "error": "Explanation generation failed."}) + "\n"
 
         except Exception as e:
             logger.error(f"Streaming prediction failed: {str(e)}")
