@@ -112,5 +112,5 @@ class ModelConfig:
     AUGMENTATION_PROB = 0.5
     
     # LIME configuration
-    LIME_NUM_SAMPLES = 70
+    LIME_NUM_SAMPLES = 50
     LIME_NUM_FEATURES = 10
