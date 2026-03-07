@@ -2,6 +2,7 @@ import psutil
 import torch
 from datetime import datetime
 from fastapi import APIRouter, Depends
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.database.database import get_db
@@ -30,7 +31,7 @@ async def health_check(db: Session = Depends(get_db)) -> dict:
         
         # Database health check
         try:
-            db.execute("SELECT 1")
+            db.execute(text("SELECT 1"))
             health_status["checks"]["database"] = {
                 "status": "healthy",
                 "message": "Database connection successful"
