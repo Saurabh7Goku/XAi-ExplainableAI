@@ -169,16 +169,27 @@ async def root():
 
 if __name__ == "__main__":
     import os
+    import torch
+    
+    # Optimization for 512MB RAM instances (Render Free Tier)
+    torch.set_num_threads(1)
+    
     # Priority for Render's injected PORT environment variable
     server_port = int(os.environ.get("PORT", settings.port))
     server_host = settings.host
     
-    logger.info(f"Starting server on {server_host}:{server_port} (with reload={settings.debug})")
+    # EXTREMELY IMPORTANT: Force reload=False in production (it consumes double RAM)
+    # We detect production if PORT is provided by Render
+    is_prod = os.environ.get("PORT") is not None
+    should_reload = settings.debug if not is_prod else False
+    
+    logger.info(f"🚀 Starting Mango Leaf API on {server_host}:{server_port}")
+    logger.info(f"Production Mode: {is_prod}, Reload: {should_reload}")
     
     uvicorn.run(
         "app.main:app",
         host=server_host,
         port=server_port,
-        reload=settings.debug,
+        reload=should_reload,
         log_level=settings.log_level.lower()
     )

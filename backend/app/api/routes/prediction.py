@@ -10,8 +10,8 @@ from PIL import Image
 
 from app.database.database import get_db
 from app.database.repositories import PredictionRepository, LLMReportRepository
-from app.core.inference import inference_pipeline
-from app.core.xai import lime_explainer
+from app.core.inference import get_inference_pipeline
+from app.core.xai import get_lime_explainer
 from app.services.knowledge_base import knowledge_base_service
 from app.services.llm_service import llm_service
 from app.services.file_service import file_service
@@ -46,10 +46,10 @@ async def predict_disease(
         logger.info(f"File uploaded: {filename}")
         
         # Make prediction
-        predicted_class, confidence, class_probabilities = inference_pipeline.predict(file_path)
+        predicted_class, confidence, class_probabilities = get_inference_pipeline().predict(file_path)
         
         # Generate LIME explanation
-        explanation_class, lime_explanation = lime_explainer.explain_image(file_path)
+        explanation_class, lime_explanation = get_lime_explainer().explain_image(file_path)
         
         # Save explanation image
         explanation_path = file_service.save_explanation_image(
@@ -172,7 +172,7 @@ async def predict_disease_stream(
         try:
             # 1. Prediction Phase (FAST)
             file_path, filename = file_service.save_uploaded_file(file)
-            predicted_class, confidence, class_probabilities = inference_pipeline.predict(file_path)
+            predicted_class, confidence, class_probabilities = get_inference_pipeline().predict(file_path)
             disease_info = knowledge_base_service.get_disease_info(predicted_class)
             
             # Save basic prediction to DB
@@ -225,7 +225,7 @@ async def predict_disease_stream(
             }) + "\n"
 
             # 3. XAI/LIME Phase (SLOW)
-            explanation_class, lime_explanation = lime_explainer.explain_image(file_path)
+            explanation_class, lime_explanation = get_lime_explainer().explain_image(file_path)
             explanation_path = file_service.save_explanation_image(
                 lime_explanation, f"lime_{filename}"
             )
@@ -323,7 +323,7 @@ async def batch_predict(
             file_path, filename = file_service.save_uploaded_file(file)
             
             # Make prediction
-            predicted_class, confidence, class_probabilities = inference_pipeline.predict(file_path)
+            predicted_class, confidence, class_probabilities = get_inference_pipeline().predict(file_path)
             
             # Get disease information
             disease_info = knowledge_base_service.get_disease_info(predicted_class)

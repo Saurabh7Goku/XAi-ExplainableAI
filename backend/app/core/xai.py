@@ -10,7 +10,7 @@ import lime.lime_image as lime_img
 from typing import Tuple, Any
 from app.config import settings, ModelConfig
 from app.core.model import ViT
-from app.core.inference import inference_pipeline
+from app.core.inference import get_inference_pipeline
 from app.utils.exceptions import PredictionError
 from app.utils.logger import logger
 
@@ -22,7 +22,7 @@ class LimeExplainer:
         self.device = device or ('cuda' if torch.cuda.is_available() else 'cpu')
         
         # Use provided model or the one from the shared inference pipeline
-        self.inference = inference_pipeline
+        self.inference = get_inference_pipeline()
         self.model = model or self.inference.model
         self.model.eval()
         
@@ -146,5 +146,13 @@ class LimeExplainer:
         return results
 
 
-# Global LIME explainer instance
-lime_explainer = LimeExplainer()
+# Global LIME explainer instance (Lazy loaded)
+_lime_explainer = None
+
+def get_lime_explainer() -> LimeExplainer:
+    """Get or initialize the LIME explainer (Singleton)"""
+    global _lime_explainer
+    if _lime_explainer is None:
+        logger.info("Initializing LimeExplainer (Lazy Loading)...")
+        _lime_explainer = LimeExplainer()
+    return _lime_explainer

@@ -127,5 +127,17 @@ class InferencePipeline:
         return results
 
 
-# Global inference pipeline instance
-inference_pipeline = InferencePipeline()
+# Global inference pipeline instance (Lazy loaded)
+_inference_pipeline = None
+
+def get_inference_pipeline() -> InferencePipeline:
+    """Get or initialize the inference pipeline (Singleton)"""
+    global _inference_pipeline
+    if _inference_pipeline is None:
+        # Optimization for Render/Small instances
+        import torch
+        torch.set_num_threads(1)
+        
+        logger.info("Initializing InferencePipeline (Lazy Loading)...")
+        _inference_pipeline = InferencePipeline()
+    return _inference_pipeline
