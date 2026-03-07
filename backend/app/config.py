@@ -34,9 +34,11 @@ class Settings(BaseSettings):
     img_size: int = 224
     patch_size: int = 16
     num_classes: int = 8
-    embed_dim: int = 768
+    
+    # ViT-Tiny Architecture (Optimized)
+    embed_dim: int = 192   # Old: 768
     depth: int = 12
-    num_heads: int = 12
+    num_heads: int = 3     # Old: 12
     
     # LLM Configuration
     gemini_api_key: Optional[str] = None
@@ -81,12 +83,12 @@ settings = Settings()
 class ModelConfig:
     """Model-specific configuration"""
     
-    # Model architecture constants
+    # Model architecture constants (ViT-Tiny)
     IMG_SIZE = 224
     PATCH_SIZE = 16
-    EMBED_DIM = 768
+    EMBED_DIM = 192  # Old: 768
     DEPTH = 12
-    NUM_HEADS = 12
+    NUM_HEADS = 3    # Old: 12
     
     # Class names for predictions
     CLASS_NAMES = [
