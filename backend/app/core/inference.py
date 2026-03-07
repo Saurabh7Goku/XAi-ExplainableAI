@@ -141,3 +141,7 @@ def get_inference_pipeline() -> InferencePipeline:
         logger.info("Initializing InferencePipeline (Lazy Loading)...")
         _inference_pipeline = InferencePipeline()
     return _inference_pipeline
+
+def is_pipeline_initialized() -> bool:
+    """Check if the pipeline is already loaded without triggering a load"""
+    return _inference_pipeline is not None

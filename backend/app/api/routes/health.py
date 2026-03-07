@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.database.database import get_db
 from app.database.repositories import PredictionRepository, SystemMetricsRepository
 from app.database.models import ModelVersion
-from app.core.inference import get_inference_pipeline
+from app.core.inference import get_inference_pipeline, is_pipeline_initialized
 from app.services.file_service import file_service
 from app.config import settings
 from app.utils.logger import logger
@@ -42,20 +42,26 @@ async def health_check(db: Session = Depends(get_db)) -> dict:
             }
             health_status["status"] = "unhealthy"
         
-        # Model health check
-        try:
-            model = get_inference_pipeline().model
+        # Model health check (Lazy)
+        if is_pipeline_initialized():
+            try:
+                model = get_inference_pipeline().model
+                health_status["checks"]["model"] = {
+                    "status": "healthy",
+                    "message": "Model loaded successfully",
+                    "device": str(next(model.parameters()).device)
+                }
+            except Exception as e:
+                health_status["checks"]["model"] = {
+                    "status": "unhealthy",
+                    "message": f"Model loading failed: {str(e)}"
+                }
+                health_status["status"] = "unhealthy"
+        else:
             health_status["checks"]["model"] = {
-                "status": "healthy",
-                "message": "Model loaded successfully",
-                "device": str(next(model.parameters()).device)
+                "status": "pending",
+                "message": "Model not loaded yet (lazy initialization)"
             }
-        except Exception as e:
-            health_status["checks"]["model"] = {
-                "status": "unhealthy",
-                "message": f"Model loading failed: {str(e)}"
-            }
-            health_status["status"] = "unhealthy"
         
         # File system health check
         try:
@@ -254,22 +260,30 @@ async def model_info(db: Session = Depends(get_db)) -> dict:
         # Get active model from database
         active_model = db.query(ModelVersion).filter(ModelVersion.is_active == True).first()
         
-        # Load model to get additional info
-        model = inference_pipeline.model
-        
-        model_info = {
-            "status": "loaded",
-            "device": str(next(model.parameters()).device),
-            "parameters": sum(p.numel() for p in model.parameters()),
-            "trainable_parameters": sum(p.numel() for p in model.parameters() if p.requires_grad),
-            "config": {
-                "img_size": settings.img_size,
-                "patch_size": settings.patch_size,
-                "num_classes": settings.num_classes,
-                "embed_dim": settings.embed_dim,
-                "depth": settings.depth,
-                "num_heads": settings.num_heads
+        # Load model info only if initialized
+        if is_pipeline_initialized():
+            model = get_inference_pipeline().model
+            model_info = {
+                "status": "loaded",
+                "device": str(next(model.parameters()).device),
+                "parameters": sum(p.numel() for p in model.parameters()),
+                "trainable_parameters": sum(p.numel() for p in model.parameters() if p.requires_grad),
             }
+        else:
+            model_info = {
+                "status": "pending",
+                "message": "Model not loaded yet (lazy load on first request)",
+                "parameters": 0,
+                "trainable_parameters": 0
+            }
+        
+        model_info["config"] = {
+            "img_size": settings.img_size,
+            "patch_size": settings.patch_size,
+            "num_classes": settings.num_classes,
+            "embed_dim": settings.embed_dim,
+            "depth": settings.depth,
+            "num_heads": settings.num_heads
         }
         
         if active_model:
