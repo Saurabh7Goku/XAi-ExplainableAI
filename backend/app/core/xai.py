@@ -9,8 +9,8 @@ from skimage.segmentation import mark_boundaries, slic
 import lime.lime_image as lime_img
 from typing import Tuple, Any
 from app.config import settings, ModelConfig
-from app.core.model import ViT, load_model
-from app.core.inference import InferencePipeline
+from app.core.model import ViT
+from app.core.inference import inference_pipeline
 from app.utils.exceptions import PredictionError
 from app.utils.logger import logger
 
@@ -20,16 +20,16 @@ class LimeExplainer:
     
     def __init__(self, model: ViT = None, device: str = None):
         self.device = device or ('cuda' if torch.cuda.is_available() else 'cpu')
-        self.model = model or load_model(device=self.device)
+        
+        # Use provided model or the one from the shared inference pipeline
+        self.inference = inference_pipeline
+        self.model = model or self.inference.model
         self.model.eval()
         
         # Initialize LIME explainer
         self.explainer = lime_img.LimeImageExplainer()
         
-        # Get transform pipeline from inference
-        self.inference = InferencePipeline()
-        
-        logger.info("LIME explainer initialized")
+        logger.info("LIME explainer initialized with shared model instance")
     
     def _predict_proba_fn(self, images: np.ndarray) -> np.ndarray:
         """

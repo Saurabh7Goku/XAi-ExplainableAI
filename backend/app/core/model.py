@@ -53,29 +53,8 @@ class MultiHeadAttention(nn.Module):
         return x
 
 
-class MLP(nn.Module):
-    """Multi-Layer Perceptron block"""
-    
-    def __init__(self, in_features, hidden_features=None, out_features=None, p=0.):
-        super().__init__()
-        out_features = out_features or in_features
-        hidden_features = hidden_features or in_features
-        self.fc1 = nn.Linear(in_features, hidden_features)
-        self.act = nn.GELU()
-        self.fc2 = nn.Linear(hidden_features, out_features)
-        self.drop = nn.Dropout(p)
-
-    def forward(self, x):
-        x = self.fc1(x)
-        x = self.act(x)
-        x = self.drop(x)
-        x = self.fc2(x)
-        x = self.drop(x)
-        return x
-
-
 class TransformerBlock(nn.Module):
-    """Transformer Encoder Block"""
+    """Transformer Encoder Block (Matches Kaggle Implementation)"""
     
     def __init__(self, dim, n_heads, mlp_ratio=4.0, qkv_bias=True, p=0., attn_p=0.):
         super().__init__()
@@ -83,7 +62,13 @@ class TransformerBlock(nn.Module):
         self.attn = MultiHeadAttention(dim, n_heads=n_heads, qkv_bias=qkv_bias, attn_p=attn_p, proj_p=p)
         self.norm2 = nn.LayerNorm(dim, eps=1e-6)
         hidden_features = int(dim * mlp_ratio)
-        self.mlp = MLP(in_features=dim, hidden_features=hidden_features, out_features=dim, p=p)
+        
+        # Using nn.Sequential to match the weight names (blocks.X.mlp.0, blocks.X.mlp.2)
+        self.mlp = nn.Sequential(
+            nn.Linear(dim, hidden_features),
+            nn.GELU(),
+            nn.Linear(hidden_features, dim)
+        )
 
     def forward(self, x):
         x = x + self.attn(self.norm1(x))
@@ -109,7 +94,6 @@ class ViT(nn.Module):
         # Class token and positional embedding
         self.cls_token = nn.Parameter(torch.zeros(1, 1, embed_dim))
         self.pos_embed = nn.Parameter(torch.zeros(1, num_patches + 1, embed_dim))
-        self.pos_drop = nn.Dropout(p=p)
 
         # Transformer blocks
         self.blocks = nn.Sequential(*[
@@ -148,7 +132,6 @@ class ViT(nn.Module):
         cls_tokens = self.cls_token.expand(batch_size, -1, -1)
         x = torch.cat((cls_tokens, x), dim=1)
         x = x + self.pos_embed
-        x = self.pos_drop(x)
 
         for block in self.blocks:
             x = block(x)
@@ -156,35 +139,6 @@ class ViT(nn.Module):
         x = self.norm(x)
         cls_token_final = x[:, 0]
         return self.head(cls_token_final)
-
-
-def load_model(model_path: str = None, device: str = None) -> ViT:
-    """Load trained ViT model"""
-    
-    if model_path is None:
-        model_path = settings.model_path
-    
-    if device is None:
-        device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    
-    try:
-        model = ViT().to(device)
-        
-        if os.path.exists(model_path):
-            checkpoint = torch.load(model_path, map_location=device, weights_only=False)
-            if isinstance(checkpoint, dict) and 'model_state_dict' in checkpoint:
-                model.load_state_dict(checkpoint['model_state_dict'])
-            else:
-                model.load_state_dict(checkpoint)
-            print(f"Model loaded successfully from {model_path}")
-        else:
-            print(f"Warning: Model file not found at {model_path}. Using untrained model.")
-        
-        model.eval()
-        return model
-        
-    except Exception as e:
-        raise ModelLoadError(f"Failed to load model: {str(e)}")
 
 
 def get_model_summary(model: ViT) -> str:
