@@ -53,13 +53,6 @@ def setup_middleware(app: FastAPI) -> None:
         allow_headers=["*"],
     )
     
-    # Trusted host middleware for production
-    if not settings.debug:
-        app.add_middleware(
-            TrustedHostMiddleware,
-            allowed_hosts=["localhost", "127.0.0.1", "*.yourdomain.com"]
-        )
-    
     # Request timing middleware
     @app.middleware("http")
     async def add_process_time_header(request: Request, call_next):

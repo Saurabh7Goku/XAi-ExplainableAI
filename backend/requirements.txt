@@ -1,3 +1,9 @@
+# ML Framework (Optimized for CPU/Render)
+--index-url https://download.pytorch.org/whl/cpu
+torch>=2.0.0
+torchvision>=0.15.0
+--extra-index-url https://pypi.org/simple
+
 # Core dependencies
 fastapi>=0.104.1
 uvicorn[standard]>=0.24.0
