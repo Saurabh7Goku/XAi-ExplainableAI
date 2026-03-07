@@ -29,16 +29,23 @@ class ModelSelector:
         # Download from Hugging Face if hf_repo_id is set and model doesn't exist locally
         if settings.hf_repo_id and not os.path.exists(model_path):
             try:
-                logger.info(f"Downloading model {settings.hf_filename} from Hugging Face repo {settings.hf_repo_id}...")
-                model_path = hf_hub_download(
+                logger.info(f"Hugging Face ID detected: {settings.hf_repo_id}. Starting download of {settings.hf_filename}...")
+                downloaded_path = hf_hub_download(
                     repo_id=settings.hf_repo_id,
                     filename=settings.hf_filename,
                     local_dir=os.path.dirname(model_path) if os.path.dirname(model_path) else None,
                     local_dir_use_symlinks=False
                 )
+                logger.info(f"Model downloaded successfully to: {downloaded_path}")
+                model_path = downloaded_path # Use the actual downloaded path
             except Exception as e:
                 logger.error(f"Failed to download model from Hugging Face: {str(e)}")
-                # Fallback to local path check later
+                if not os.path.exists(model_path):
+                    raise PredictionError(f"Model file missing and download failed: {str(e)}")
+        
+        if not os.path.exists(model_path):
+            logger.error(f"Model file not found at: {model_path}")
+            raise PredictionError(f"Model file not found at {model_path}")
         
         try:
             # Load checkpoint
@@ -77,10 +84,6 @@ class ModelSelector:
             idx_to_class = checkpoint.get('idx_to_class')
             
             return model, class_to_idx, idx_to_class
-                
-        except Exception as e:
-            logger.error(f"Failed to load model: {str(e)}")
-            raise PredictionError(f"Model loading failed: {str(e)}")
                 
         except Exception as e:
             logger.error(f"Failed to load model: {str(e)}")

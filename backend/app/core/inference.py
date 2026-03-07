@@ -17,33 +17,36 @@ class InferencePipeline:
     def __init__(self, model_path: str = settings.model_path, device: str = None):
         self.device = device or ('cuda' if torch.cuda.is_available() else 'cpu')
         
-        if model_path and os.path.exists(model_path):
-            model, self.class_to_idx, self.idx_to_class = ModelSelector.load_model(model_path, self.device)
-            self.model = model
-            logger.info(f"Model loaded from {model_path}")
+        # Load model if local path exists or HF repo is specified
+        if (model_path and os.path.exists(model_path)) or settings.hf_repo_id:
+            try:
+                model, self.class_to_idx, self.idx_to_class = ModelSelector.load_model(model_path, self.device)
+                self.model = model
+                logger.info(f"Model loaded successfully (from local or HF)")
+            except Exception as e:
+                logger.warning(f"Failed to load model: {str(e)}. Falling back to untrained model.")
+                self._load_default_model()
         else:
-            # Default model configuration
-            self.model = ViT(
-                num_classes=settings.num_classes,
-                img_size=ModelConfig.IMG_SIZE,
-                patch_size=ModelConfig.PATCH_SIZE,
-                embed_dim=ModelConfig.EMBED_DIM,
-                depth=ModelConfig.DEPTH,
-                num_heads=ModelConfig.NUM_HEADS
-            ).to(self.device)
-            
-            # Default class mappings (can be overridden by loaded model)
-            self.class_to_idx = {cls: idx for idx, cls in enumerate(ModelConfig.CLASS_NAMES)}
-            self.idx_to_class = {idx: cls for cls, idx in self.class_to_idx.items()}
-            
-            logger.info("Default ViT model initialized")
+            self._load_default_model()
         self.transform = self._get_transform()
         
         # Ensure labels match the model's number of classes
         self.labels = [self.idx_to_class.get(i, f"Class_{i}") for i in range(len(self.idx_to_class))]
         
-        logger.info(f"Inference pipeline initialized on device: {self.device} with {len(self.labels)} classes")
-    
+    def _load_default_model(self):
+        """Load default empty model structure"""
+        self.model = ViT(
+            num_classes=settings.num_classes,
+            img_size=ModelConfig.IMG_SIZE,
+            patch_size=ModelConfig.PATCH_SIZE,
+            embed_dim=ModelConfig.EMBED_DIM,
+            depth=ModelConfig.DEPTH,
+            num_heads=ModelConfig.NUM_HEADS
+        ).to(self.device)
+        self.class_to_idx = {cls: idx for idx, cls in enumerate(ModelConfig.CLASS_NAMES)}
+        self.idx_to_class = {idx: cls for cls, idx in self.class_to_idx.items()}
+        logger.info("Default/Untrained ViT model initialized as fallback")
+
     def _get_transform(self) -> transforms.Compose:
         """Get image transformation pipeline"""
         return transforms.Compose([

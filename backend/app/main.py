@@ -168,10 +168,17 @@ async def root():
 
 
 if __name__ == "__main__":
+    import os
+    # Priority for Render's injected PORT environment variable
+    server_port = int(os.environ.get("PORT", settings.port))
+    server_host = settings.host
+    
+    logger.info(f"Starting server on {server_host}:{server_port} (with reload={settings.debug})")
+    
     uvicorn.run(
         "app.main:app",
-        host=settings.host,
-        port=settings.port,
+        host=server_host,
+        port=server_port,
         reload=settings.debug,
         log_level=settings.log_level.lower()
     )
