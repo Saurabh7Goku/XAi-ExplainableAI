@@ -83,7 +83,7 @@ export default function ResultsDisplay({
         <p className="text-xs text-gray-500 mt-2">
           {limeExplanation
             ? "The highlighted areas show exactly where the AI detected disease patterns."
-            : "LIME (Explainable AI) is currently analyzing which sections of the leaf caused this diagnosis."}
+            : "LIME (Explainable AI) is currently analyzing which sections of the leaf caused this diagnosis. Note: This may take a few minutes running on free clusters."}
         </p>
       </div>
     </div>
