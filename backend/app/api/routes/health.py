@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.database.database import get_db
 from app.database.repositories import PredictionRepository, SystemMetricsRepository
 from app.database.models import ModelVersion
-from app.core.model import load_model
+from app.core.inference import inference_pipeline
 from app.services.file_service import file_service
 from app.config import settings
 from app.utils.logger import logger
@@ -44,7 +44,7 @@ async def health_check(db: Session = Depends(get_db)) -> dict:
         
         # Model health check
         try:
-            model = load_model()
+            model = inference_pipeline.model
             health_status["checks"]["model"] = {
                 "status": "healthy",
                 "message": "Model loaded successfully",
@@ -255,7 +255,7 @@ async def model_info(db: Session = Depends(get_db)) -> dict:
         active_model = db.query(ModelVersion).filter(ModelVersion.is_active == True).first()
         
         # Load model to get additional info
-        model = load_model()
+        model = inference_pipeline.model
         
         model_info = {
             "status": "loaded",
