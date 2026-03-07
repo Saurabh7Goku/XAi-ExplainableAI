@@ -90,7 +90,7 @@ Format the response in a friendly, encouraging tone while being informative and 
     def _call_gemini_api(self, prompt: str) -> str:
         """Call Gemini API for report generation"""
         
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={self.gemini_api_key}"
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite:generateContent?key={self.gemini_api_key}"
         headers = {'Content-Type': 'application/json'}
         payload = {"contents": [{"parts": [{"text": prompt}]}]}
         
