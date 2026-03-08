@@ -15,7 +15,11 @@ class InferencePipeline:
     """Pipeline for model inference"""
     
     def __init__(self, model_path: str = settings.model_path, device: str = None):
-        self.device = device or ('cuda' if torch.cuda.is_available() else 'cpu')
+        if device is None:
+            # Force CPU for quantized models (PyTorch doesn't support quantized ops on CUDA)
+            self.device = 'cpu' if model_path and 'quantized' in model_path.lower() else ('cuda' if torch.cuda.is_available() else 'cpu')
+        else:
+            self.device = device
         
         # Load model if local path exists or HF repo is specified
         if (model_path and os.path.exists(model_path)) or settings.hf_repo_id:
@@ -72,11 +76,12 @@ class InferencePipeline:
             Tuple of (predicted_class, confidence, class_probabilities)
         """
         try:
+            import gc
             # Preprocess image
             input_tensor = self.preprocess_image(image_path)
             
-            # Make prediction
-            with torch.no_grad():
+            # Make prediction (using inference_mode which is stricter and more memory efficient than no_grad)
+            with torch.inference_mode():
                 logits = self.model(input_tensor)
                 probabilities = torch.softmax(logits, dim=1)
                 confidence, predicted_idx = torch.max(probabilities, dim=1)
@@ -96,6 +101,10 @@ class InferencePipeline:
                 }
                 
                 logger.info(f"Prediction: {predicted_class} with confidence {confidence_val:.3f}")
+                
+                # Free memory
+                del input_tensor, logits, probabilities, confidence, predicted_idx
+                gc.collect()
                 
                 return predicted_class, confidence_val, class_probs
                 

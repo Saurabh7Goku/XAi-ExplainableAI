@@ -48,8 +48,13 @@ class ModelSelector:
             raise PredictionError(f"Model file not found at {model_path}")
         
         try:
-            # Load checkpoint
-            checkpoint = torch.load(model_path, map_location=device)
+            import gc
+            # Load checkpoint (use mmap to reduce memory footprint)
+            try:
+                checkpoint = torch.load(model_path, map_location=device, mmap=True)
+            except TypeError:
+                # Fallback for older PyTorch versions
+                checkpoint = torch.load(model_path, map_location=device)
             
             logger.info(f"Loading ViT model from {model_path}")
             
@@ -80,8 +85,16 @@ class ModelSelector:
             model.load_state_dict(checkpoint['model_state_dict'])
             model.eval()
             
+            # Disable gradients to save memory
+            for param in model.parameters():
+                param.requires_grad = False
+            
             class_to_idx = checkpoint.get('class_to_idx')
             idx_to_class = checkpoint.get('idx_to_class')
+            
+            # Clear memory immediately
+            del checkpoint
+            gc.collect()
             
             return model, class_to_idx, idx_to_class
                 

@@ -33,6 +33,7 @@ ENV/
 backend/models/*.pth
 backend/models/*.bin
 !backend/models/.gitkeep
+!backend/models/vit_mango_quantized.pth
 
 # Logs
 backend/logs/
