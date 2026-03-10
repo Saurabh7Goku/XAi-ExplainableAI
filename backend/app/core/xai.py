@@ -19,17 +19,18 @@ class LimeExplainer:
     """LIME explainer for ViT model"""
     
     def __init__(self, model: ViT = None, device: str = None):
-        self.device = device or ('cuda' if torch.cuda.is_available() else 'cpu')
-        
         # Use provided model or the one from the shared inference pipeline
         self.inference = get_inference_pipeline()
         self.model = model or self.inference.model
         self.model.eval()
         
+        # Use the model's device instead of auto-detecting
+        self.device = device or next(self.model.parameters()).device.type
+        
         # Initialize LIME explainer
         self.explainer = lime_img.LimeImageExplainer()
         
-        logger.info("LIME explainer initialized with shared model instance")
+        logger.info(f"LIME explainer initialized with model device: {self.device}")
     
     def _predict_proba_fn(self, images: np.ndarray) -> np.ndarray:
         """
