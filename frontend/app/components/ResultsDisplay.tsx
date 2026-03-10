@@ -50,7 +50,7 @@ export default function ResultsDisplay({
                     <span className={disease === prediction ? 'font-bold text-blue-700' : 'font-semibold text-black'}>
                       {disease}
                     </span>
-                    <span className={disease === prediction ? 'font-bold' : 'font-semibold'}>
+                    <span className={disease === prediction ? 'font-bold text-blue-700' : 'font-semibold text-black'}>
                       {(prob * 100).toFixed(1)}%
                     </span>
                   </div>

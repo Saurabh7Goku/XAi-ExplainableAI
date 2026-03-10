@@ -111,6 +111,8 @@ class ModelConfig:
     # Data augmentation
     AUGMENTATION_PROB = 0.5
     
-    # LIME configuration
-    LIME_NUM_SAMPLES = 300
-    LIME_NUM_FEATURES = 50
+    # LIME configuration - adjusted for production constraints
+    import os
+    IS_PRODUCTION = os.environ.get("PORT") is not None  # Render sets PORT in production
+    LIME_NUM_SAMPLES = 100 if IS_PRODUCTION else 300
+    LIME_NUM_FEATURES = 10 if IS_PRODUCTION else 50
