@@ -1,5 +1,7 @@
 'use client'
 
+import ReactMarkdown from 'react-markdown'
+
 interface ReportCardProps {
   diseaseName: string
   symptoms: string[]
@@ -66,7 +68,9 @@ export default function ReportCard({
               <span>Consulting X-AI...</span>
             </div>
           ) : (
-            <p className="text-gray-800 whitespace-pre-line">{report}</p>
+            <div className="prose prose-sm max-w-none text-gray-800">
+              <ReactMarkdown>{report}</ReactMarkdown>
+            </div>
           )}
         </div>
       </div>
