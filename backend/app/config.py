@@ -115,5 +115,5 @@ class ModelConfig:
     # LIME configuration - optimized for speed
     import os
     IS_PRODUCTION = os.environ.get("PORT") is not None  # Render sets PORT in production
-    LIME_NUM_SAMPLES = 50 if IS_PRODUCTION else 400  # Reduced for speed
-    LIME_NUM_FEATURES = 5 if IS_PRODUCTION else 50   # Reduced for speed
+    LIME_NUM_SAMPLES = 50 if IS_PRODUCTION else 150  # Reduced for speed
+    LIME_NUM_FEATURES = 5 if IS_PRODUCTION else 20   # Reduced for speed

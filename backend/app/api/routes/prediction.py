@@ -12,7 +12,7 @@ from PIL import Image
 from app.database.database import get_db
 from app.database.repositories import PredictionRepository, LLMReportRepository
 from app.core.inference import get_inference_pipeline
-from app.core.xai import get_lime_explainer
+from app.core.xai import get_explainer
 from app.services.knowledge_base import knowledge_base_service
 from app.services.llm_service import llm_service
 from app.services.file_service import file_service
@@ -144,6 +144,7 @@ async def predict_disease(
             "confidence": confidence,
             "class_probabilities": class_probabilities,
             "lime_explanation": lime_base64,
+            "lime_mask": explanation_result['mask'].tolist(),
             "disease_info": disease_info,
             "report": report,
             "processing_time_ms": processing_time,
@@ -283,27 +284,27 @@ async def predict_disease_stream(
 
             # 3. XAI/LIME Phase (SLOW)
             try:
-                # Run sync LIME call in a thread pool
-                explainer = get_lime_explainer()
-                explanation_class, lime_explanation = await run_in_threadpool(
+                # Run sync explanation call in a thread pool
+                explainer = get_explainer()
+                explanation_result = await run_in_threadpool(
                     explainer.explain_image,
                     image_path=file_path
                 )
                 
                 explanation_path = file_service.save_explanation_image(
-                    lime_explanation, f"lime_{filename}"
+                    explanation_result['image'], f"attention_{filename}"
                 )
 
-                # Update prediction with LIME path
+                # Update prediction with explanation path
                 try:
                     if prediction_id:
                         prediction.lime_explanation_path = explanation_path
                         db.commit()
                 except Exception as e:
-                    logger.warning(f"Failed to update LIME path in DB: {str(e)}")
+                    logger.warning(f"Failed to update explanation path in DB: {str(e)}")
 
-                # Convert to base64
-                lime_pil = Image.fromarray((lime_explanation * 255).astype('uint8'))
+                # Convert explanation to base64 for frontend
+                lime_pil = Image.fromarray(explanation_result['image'].astype('uint8'))
                 buffer = io.BytesIO()
                 lime_pil.save(buffer, format='PNG')
                 lime_base64 = base64.b64encode(buffer.getvalue()).decode()
@@ -311,13 +312,14 @@ async def predict_disease_stream(
                 yield json.dumps({
                     "type": "explanation",
                     "lime_explanation": lime_base64,
+                    "lime_mask": explanation_result['mask'].tolist() if 'mask' in explanation_result else None,
                     "processing_time_ms": (time.time() - start_time) * 1000
                 }) + "\n"
                 
-                # Clean up memory immediately after LIME
+                # Clean up memory immediately after explanation
                 import gc
                 import torch
-                del lime_explanation, lime_pil, buffer, explainer
+                del explanation_result, lime_pil, buffer, explainer
                 gc.collect()
                 if torch.cuda.is_available():
                     torch.cuda.empty_cache()
