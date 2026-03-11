@@ -3,6 +3,7 @@ from app.database.database import get_db
 from app.database.repositories import DiseaseInfoRepository
 from app.utils.exceptions import DatabaseError
 from app.utils.logger import logger
+from app.config import settings
 
 
 class KnowledgeBaseService:
