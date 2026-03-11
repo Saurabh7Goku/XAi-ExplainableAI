@@ -34,6 +34,10 @@ class KnowledgeBaseService:
         Returns:
             Dictionary containing disease information
         """
+        # Skip database operations if disabled
+        if settings.disable_db_operations:
+            return self._get_fallback_disease_info(disease_name)
+            
         try:
             repo = self._get_repo()
             disease = repo.get_by_name(disease_name)
@@ -139,7 +143,13 @@ class KnowledgeBaseService:
             raise DatabaseError(f"Failed to get all diseases: {str(e)}")
     
     def initialize_diseases(self) -> None:
-        """Initialize default disease information in database"""
+        """
+        Initialize default disease information (skip if database disabled)
+        """
+        if settings.disable_db_operations:
+            logger.info("Database operations disabled - skipping disease initialization")
+            return
+            
         try:
             repo = self._get_repo()
             if repo:

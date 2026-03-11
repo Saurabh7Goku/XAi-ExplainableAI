@@ -16,6 +16,7 @@ from app.core.xai import get_lime_explainer
 from app.services.knowledge_base import knowledge_base_service
 from app.services.llm_service import llm_service
 from app.services.file_service import file_service
+from app.config import settings
 from app.utils.exceptions import (
     PredictionError, InvalidImageError, FileUploadError, LLMServiceError
 )
