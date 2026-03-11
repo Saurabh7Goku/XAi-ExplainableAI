@@ -96,35 +96,36 @@ async def predict_disease(
         # Calculate processing time
         processing_time = (time.time() - start_time) * 1000
         
-        # Save prediction to database
+        # Save prediction to database (skip if disabled)
         prediction_id = None
-        try:
-            prediction_repo = PredictionRepository(db)
-            prediction_data = {
-                'image_filename': filename,
-                'predicted_class': predicted_class,
-                'confidence': confidence,
-                'class_probabilities': class_probabilities,
-                'lime_explanation_path': explanation_path,
-                'processing_time_ms': processing_time
-            }
-            prediction = prediction_repo.create(prediction_data)
-            prediction_id = prediction.id
-            
-            # Save LLM report to database
-            llm_report_data = {
-                'prediction_id': prediction_id,
-                'disease_name': predicted_class,
-                'confidence_score': confidence,
-                'report_content': report,
-                'llm_provider': 'gemini',
-                'generation_time_ms': report_time
-            }
-            
-            llm_repo = LLMReportRepository(db)
-            llm_repo.create(llm_report_data)
-        except Exception as e:
-            logger.warning(f"Failed to save prediction/report to database: {str(e)}")
+        if not settings.disable_db_operations:
+            try:
+                prediction_repo = PredictionRepository(db)
+                prediction_data = {
+                    'image_filename': filename,
+                    'predicted_class': predicted_class,
+                    'confidence': confidence,
+                    'class_probabilities': class_probabilities,
+                    'lime_explanation_path': explanation_path,
+                    'processing_time_ms': processing_time
+                }
+                prediction = prediction_repo.create(prediction_data)
+                prediction_id = prediction.id
+                
+                # Save LLM report to database (skip if disabled)
+                llm_report_data = {
+                    'prediction_id': prediction_id,
+                    'disease_name': predicted_class,
+                    'confidence_score': confidence,
+                    'report_content': report,
+                    'llm_provider': 'gemini',
+                    'generation_time_ms': report_time
+                }
+                
+                llm_repo = LLMReportRepository(db)
+                llm_repo.create(llm_report_data)
+            except Exception as e:
+                logger.warning(f"Failed to save prediction/report to database: {str(e)}")
         
         logger.info(f"Prediction completed: {predicted_class} ({confidence:.3f}) in {processing_time:.0f}ms")
         
@@ -218,16 +219,21 @@ async def predict_disease_stream(
             predicted_class, confidence, class_probabilities = get_inference_pipeline().predict(file_path)
             disease_info = knowledge_base_service.get_disease_info(predicted_class)
             
-            # Save basic prediction to DB
-            prediction_repo = PredictionRepository(db)
-            prediction = prediction_repo.create({
-                'image_filename': filename,
-                'predicted_class': predicted_class,
-                'confidence': confidence,
-                'class_probabilities': class_probabilities,
-                'processing_time_ms': (time.time() - start_time) * 1000
-            })
-            prediction_id = prediction.id
+            # Save basic prediction to DB (skip if disabled)
+            prediction_id = None
+            if not settings.disable_db_operations:
+                try:
+                    prediction_repo = PredictionRepository(db)
+                    prediction = prediction_repo.create({
+                        'image_filename': filename,
+                        'predicted_class': predicted_class,
+                        'confidence': confidence,
+                        'class_probabilities': class_probabilities,
+                        'processing_time_ms': (time.time() - start_time) * 1000
+                    })
+                    prediction_id = prediction.id
+                except Exception as e:
+                    logger.warning(f"Failed to save prediction to DB: {str(e)}")
 
             yield json.dumps({
                 "type": "prediction",
@@ -251,19 +257,20 @@ async def predict_disease_stream(
                 )
                 report_time = (time.time() - report_start) * 1000
 
-                # Save report to DB (Non-blocking)
-                try:
-                    llm_repo = LLMReportRepository(db)
-                    llm_repo.create({
-                        'prediction_id': prediction_id,
-                        'disease_name': predicted_class,
-                        'confidence_score': confidence,
-                        'report_content': report,
-                        'llm_provider': 'gemini',
-                        'generation_time_ms': report_time
-                    })
-                except Exception as e:
-                    logger.warning(f"Failed to save streaming report to DB: {str(e)}")
+                # Save report to DB (skip if disabled)
+                if prediction_id and not settings.disable_db_operations:
+                    try:
+                        llm_repo = LLMReportRepository(db)
+                        llm_repo.create({
+                            'prediction_id': prediction_id,
+                            'disease_name': predicted_class,
+                            'confidence_score': confidence,
+                            'report_content': report,
+                            'llm_provider': 'gemini',
+                            'generation_time_ms': report_time
+                        })
+                    except Exception as e:
+                        logger.warning(f"Failed to save streaming report to DB: {str(e)}")
 
                 yield json.dumps({
                     "type": "report",

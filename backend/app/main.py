@@ -112,8 +112,8 @@ def setup_events(app: FastAPI) -> None:
         logger.info(f"Starting {settings.app_name} v{settings.app_version}")
         
         try:
-            # Initialize database
-            try:
+            # Initialize database (skip if disabled)
+            if not settings.disable_db_operations:
                 init_db()
                 logger.info("Database initialized successfully")
                 
@@ -122,8 +122,8 @@ def setup_events(app: FastAPI) -> None:
                     logger.info("Database health check passed")
                 else:
                     logger.warning("Database health check failed")
-            except Exception as db_err:
-                logger.warning(f"Database initialization failed: {str(db_err)}. Using fallback for data.")
+            else:
+                logger.info("Database operations disabled - running in memory-only mode")
             
             # Initialize knowledge base
             knowledge_base_service.initialize_diseases()

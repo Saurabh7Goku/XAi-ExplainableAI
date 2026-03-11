@@ -24,8 +24,9 @@ class Settings(BaseSettings):
     port: int = 8000
     
     # Database
-    # Database
-    database_url: Optional[str] = "sqlite:///./mango_leaf_db.sqlite"
+    # Database configuration - DISABLED for performance
+    database_url: str = "sqlite:///:memory:"  # In-memory database only
+    disable_db_operations: bool = True  # Skip all database saves
     
     # Model Configuration
     model_path: str = "models/vit_mango_quantized.pth"
@@ -111,8 +112,8 @@ class ModelConfig:
     # Data augmentation
     AUGMENTATION_PROB = 0.5
     
-    # LIME configuration - adjusted for production constraints
+    # LIME configuration - optimized for speed
     import os
     IS_PRODUCTION = os.environ.get("PORT") is not None  # Render sets PORT in production
-    LIME_NUM_SAMPLES = 100 if IS_PRODUCTION else 300
-    LIME_NUM_FEATURES = 10 if IS_PRODUCTION else 50
+    LIME_NUM_SAMPLES = 50 if IS_PRODUCTION else 150  # Reduced for speed
+    LIME_NUM_FEATURES = 5 if IS_PRODUCTION else 10   # Reduced for speed
