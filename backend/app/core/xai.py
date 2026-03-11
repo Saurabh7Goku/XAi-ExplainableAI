@@ -59,7 +59,13 @@ class LimeExplainer:
                 logits = self.model(batch_tensor)
                 probabilities = torch.softmax(logits, dim=1)
                 
-            return probabilities.cpu().numpy()
+            result = probabilities.cpu().numpy()
+            
+            # Clean up tensors to prevent memory leaks
+            del batch_tensor, logits, probabilities, images_tensor
+            torch.cuda.empty_cache() if torch.cuda.is_available() else None
+                
+            return result
             
         except Exception as e:
             logger.error(f"LIME prediction function failed: {str(e)}")

@@ -39,6 +39,23 @@ async def predict_disease(
     Returns:
         Prediction results with LIME explanation and LLM report
     """
+    # Pre-prediction cleanup - clear all existing data
+    try:
+        import gc
+        import torch
+        
+        # Clear any existing cached data
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+        
+        # Clear old temp files
+        file_service.cleanup_temp_files(max_age_hours=0)  # Clean all temp files
+        
+        logger.info("Pre-prediction cleanup completed")
+    except Exception as e:
+        logger.warning(f"Pre-cleanup failed: {str(e)}")
+    
     start_time = time.time()
     
     try:
@@ -111,6 +128,14 @@ async def predict_disease(
         
         logger.info(f"Prediction completed: {predicted_class} ({confidence:.3f}) in {processing_time:.0f}ms")
         
+        # Clean up memory
+        import gc
+        import torch
+        del lime_pil, buffer
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+        
         return {
             "success": True,
             "prediction": predicted_class,
@@ -164,6 +189,23 @@ async def predict_disease_stream(
     Sends prediction instantly, then LLM report, then LIME explanation.
     """
     async def event_generator():
+        # Pre-prediction cleanup - clear all existing data
+        try:
+            import gc
+            import torch
+            
+            # Clear any existing cached data
+            gc.collect()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+            
+            # Clear old temp files
+            file_service.cleanup_temp_files(max_age_hours=0)  # Clean all temp files
+            
+            logger.info("Pre-prediction cleanup completed")
+        except Exception as e:
+            logger.warning(f"Pre-cleanup failed: {str(e)}")
+        
         start_time = time.time()
         filename = None
         predicted_class = None
@@ -263,6 +305,15 @@ async def predict_disease_stream(
                     "lime_explanation": lime_base64,
                     "processing_time_ms": (time.time() - start_time) * 1000
                 }) + "\n"
+                
+                # Clean up memory immediately after LIME
+                import gc
+                import torch
+                del lime_explanation, lime_pil, buffer, explainer
+                gc.collect()
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+                    
             except Exception as e:
                 logger.error(f"LIME explanation phase failed: {str(e)}")
                 yield json.dumps({"type": "explanation", "error": "Explanation generation failed."}) + "\n"
@@ -270,6 +321,21 @@ async def predict_disease_stream(
         except Exception as e:
             logger.error(f"Streaming prediction failed: {str(e)}")
             yield json.dumps({"type": "error", "message": str(e)}) + "\n"
+        
+        finally:
+            # Clean up uploaded file and resources
+            try:
+                if 'file_path' in locals() and file_path:
+                    file_service.delete_file(file_path)
+                # Final memory cleanup
+                import gc
+                import torch
+                gc.collect()
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+                logger.info("Memory cleanup completed after prediction")
+            except Exception as e:
+                logger.warning(f"Cleanup failed: {str(e)}")
 
     return StreamingResponse(event_generator(), media_type="application/x-ndjson")
 
