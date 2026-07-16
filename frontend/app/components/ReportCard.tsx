@@ -1,0 +1,179 @@
+'use client'
+
+import ReactMarkdown from 'react-markdown'
+
+interface ReportCardProps {
+  diseaseName: string
+  symptoms: string[]
+  treatments: string[]
+  report: string
+  confidence?: number
+}
+
+export default function ReportCard({
+  diseaseName,
+  symptoms,
+  treatments,
+  report,
+  confidence
+}: ReportCardProps) {
+  const isHealthy = diseaseName === 'Healthy'
+  const isGenerating = report === 'Generating expert report and diagnosis...'
+
+  return (
+    <div className="space-y-8">
+      {/* Quick Summary Cards */}
+      <div className="grid md:grid-cols-2 gap-6">
+        {/* Symptoms Card */}
+        <div className="bg-gradient-to-br from-red-50 to-rose-50 rounded-xl p-6 border border-red-100 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-400 to-rose-500 flex items-center justify-center text-lg shadow-md">
+              ⚠️
+            </div>
+            <h4 className="font-bold text-gray-800">Identified Symptoms</h4>
+          </div>
+          <ul className="space-y-2">
+            {symptoms.length > 0 ? (
+              symptoms.map((symptom, index) => (
+                <li key={index} className="flex items-start gap-3 text-sm">
+                  <span className="flex-shrink-0 w-5 h-5 rounded-full bg-red-100 flex items-center justify-center mt-0.5">
+                    <span className="text-red-500 text-xs">!</span>
+                  </span>
+                  <span className="text-gray-700">{symptom}</span>
+                </li>
+              ))
+            ) : (
+              <li className="text-gray-500 italic text-sm">No specific symptoms recorded</li>
+            )}
+          </ul>
+        </div>
+
+        {/* Treatments Card */}
+        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-100 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-lg shadow-md">
+              💊
+            </div>
+            <h4 className="font-bold text-gray-800">Recommended Treatments</h4>
+          </div>
+          <ul className="space-y-2">
+            {treatments.length > 0 ? (
+              treatments.map((treatment, index) => (
+                <li key={index} className="flex items-start gap-3 text-sm">
+                  <span className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center mt-0.5">
+                    <span className="text-blue-500 text-xs">✓</span>
+                  </span>
+                  <span className="text-gray-700">{treatment}</span>
+                </li>
+              ))
+            ) : (
+              <li className="text-gray-500 italic text-sm">No treatments specified</li>
+            )}
+          </ul>
+        </div>
+      </div>
+
+      {/* Severity Indicator */}
+      <div className={`rounded-2xl p-6 border shadow-lg ${isHealthy
+          ? 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-200'
+          : symptoms.length > 3
+            ? 'bg-gradient-to-br from-red-50 to-orange-50 border-red-200'
+            : 'bg-gradient-to-br from-yellow-50 to-amber-50 border-yellow-200'
+        }`}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <span className="text-3xl">{isHealthy ? '🟢' : symptoms.length > 3 ? '🔴' : '🟡'}</span>
+            <div>
+              <h4 className="font-bold text-gray-800">Severity Assessment</h4>
+              <p className="text-sm text-gray-600">
+                {isHealthy
+                  ? 'No disease detected — leaf appears healthy'
+                  : symptoms.length > 3
+                    ? 'Multiple symptoms detected — prompt treatment recommended'
+                    : 'Mild symptoms detected — monitor and treat early'
+                }
+              </p>
+            </div>
+          </div>
+          <div className="text-right">
+            <span className="text-sm text-gray-500">Confidence</span>
+            <div className={`text-2xl font-bold ${isHealthy ? 'text-green-600' : 'text-orange-600'
+              }`}>
+              {confidence ? `${Math.round(confidence * 100)}%` : '—'}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* AI Report Section */}
+      <div className="bg-gradient-to-br from-purple-50 to-violet-50 rounded-2xl p-6 border border-purple-100 shadow-lg">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-400 to-violet-500 flex items-center justify-center text-xl shadow-lg">
+            🤖
+          </div>
+          <div>
+            <h3 className="text-xl font-bold text-gray-800">AI Expert Analysis</h3>
+            <p className="text-xs text-gray-500">
+              Generated by Gemini AI &bull; Agricultural domain expert
+            </p>
+          </div>
+        </div>
+
+        {isGenerating ? (
+          <div className="bg-white/80 rounded-xl p-8 border border-purple-100">
+            <div className="flex flex-col items-center justify-center space-y-4">
+              <div className="relative w-16 h-16">
+                <div className="absolute inset-0 rounded-full border-4 border-purple-100"></div>
+                <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-purple-500 animate-spin"></div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-xl animate-pulse">🧠</span>
+                </div>
+              </div>
+              <div className="text-center">
+                <p className="text-gray-700 font-medium">Consulting AI Expert...</p>
+                <p className="text-xs text-gray-400 mt-1">Generating comprehensive agricultural report</p>
+              </div>
+              <div className="flex gap-1.5">
+                <span className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></span>
+                <span className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></span>
+                <span className="w-2 h-2 bg-violet-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></span>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="bg-white/80 rounded-xl p-6 border border-purple-100 prose prose-sm max-w-none">
+            <div className="text-gray-800 leading-relaxed">
+              <ReactMarkdown
+                components={{
+                  h1: ({ children }) => <h1 className="text-2xl font-bold text-gray-900 mt-6 mb-4 pb-2 border-b border-purple-100">{children}</h1>,
+                  h2: ({ children }) => <h2 className="text-xl font-bold text-gray-900 mt-5 mb-3">{children}</h2>,
+                  h3: ({ children }) => <h3 className="text-lg font-semibold text-gray-800 mt-4 mb-2">{children}</h3>,
+                  strong: ({ children }) => <strong className="font-bold text-gray-900">{children}</strong>,
+                  ul: ({ children }) => <ul className="space-y-1.5 my-3">{children}</ul>,
+                  li: ({ children }) => <li className="flex items-start gap-2 text-gray-700"><span className="text-purple-500 mt-1">•</span>{children}</li>,
+                  p: ({ children }) => <p className="my-3 text-gray-700 leading-relaxed">{children}</p>,
+                  code: ({ children }) => <code className="bg-gray-100 px-1.5 py-0.5 rounded text-sm text-purple-700">{children}</code>,
+                }}
+              >
+                {report}
+              </ReactMarkdown>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Disclaimer */}
+      <div className="bg-gradient-to-br from-amber-50 to-yellow-50 rounded-xl p-4 border border-amber-200">
+        <div className="flex items-start gap-3">
+          <span className="text-xl flex-shrink-0">📌</span>
+          <div>
+            <h5 className="text-sm font-semibold text-amber-800">Important Notice</h5>
+            <p className="text-xs text-amber-700 mt-1">
+              This AI-generated report is for informational purposes only. For critical agricultural decisions, please consult with local agricultural experts or extension officers. Results should be verified through professional diagnosis.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
