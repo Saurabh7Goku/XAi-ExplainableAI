@@ -13,7 +13,7 @@ This guide will help you set up the complete Mango Leaf Disease Detection system
 - **Git** - Version control
 
 ### Optional but Recommended
-- **NVIDIA GPU** - For faster model training
+- **GPU** - For faster model training
 - **Docker & Docker Compose** - For easy deployment
 - **Gemini API Key** - For LLM report generation
 
@@ -232,10 +232,73 @@ dropdb mango_leaf_db && createdb mango_leaf_db
 4. **Deploy**: Use Docker for production deployment
 5. **Monitor**: Set up logging and monitoring
 
+## 🚀 Deployment Guide
+
+### Backend: Northflank Deployment
+
+This project is configured for deployment on [Northflank](https://northflank.com/).
+
+#### Prerequisites
+1. A [Northflank](https://app.northflank.com/) account
+2. Your code pushed to a Git repository (GitHub, GitLab, etc.)
+3. A [Gemini API Key](https://aistudio.google.com/apikey) (optional, for LLM reports)
+
+#### Step 1: Create a Northflank Service
+1. Log in to [Northflank Dashboard](https://app.northflank.com/)
+2. Create a new **Web Service**
+3. Connect your Git repository containing this project
+4. Set the **Docker context** to `backend/`
+5. Set the **Dockerfile path** to `backend/Dockerfile`
+
+#### Step 2: Configure Environment Variables
+In the Northflank service settings, add these environment variables:
+
+| Variable | Value | Description |
+|----------|-------|-------------|
+| `PORT` | `8000` | Internal port (Northflank injects this) |
+| `DEBUG` | `false` | Disable debug mode |
+| `DISABLE_DB_OPERATIONS` | `true` | Use in-memory database |
+| `DATABASE_URL` | `sqlite:///:memory:` | In-memory DB (no persistence needed) |
+| `MODEL_PATH` | `models/vit_mango_quantized.pth` | Path to model file |
+| `HF_REPO_ID` | `Saurabh7Goku/vit-mango-leaf-disease` | HuggingFace repo for model download |
+| `HF_FILENAME` | `vit_mango_quantized.pth` | Model filename on HuggingFace |
+| `GEMINI_API_KEY` | *(your key)* | Optional: For LLM-generated reports |
+| `CORS_ORIGINS` | `https://x-ai-explainable-ai.vercel.app` | Your Vercel frontend URL |
+| `LOG_LEVEL` | `INFO` | Logging level |
+
+#### Step 3: Configure Resources
+- **CPU**: 1 vCPU (minimum)
+- **Memory**: 2 GB (minimum, 4 GB recommended for faster model loading)
+- **Disk**: 5 GB (for model storage and temp files)
+
+#### Step 4: Deploy
+1. Click **Create Service** and wait for the build to complete
+2. Once deployed, Northflank will provide a public URL (e.g., `https://mango-leaf-api--xxxxxx.uc.r.appspot.com`)
+3. Verify deployment by visiting `https://your-northflank-url.uc.r.appspot.com/`
+
+### Frontend: Vercel Configuration
+
+The frontend is already deployed on Vercel. To connect it to your Northflank backend:
+
+1. Go to your Vercel project dashboard
+2. Navigate to **Settings** → **Environment Variables**
+3. Add or update:
+   - **Name**: `NEXT_PUBLIC_API_URL`
+   - **Value**: `https://your-northflank-url.uc.r.appspot.com` (replace with your actual Northflank URL)
+4. Redeploy the frontend for changes to take effect
+
+### Updating CORS for Production
+
+After deployment, update the CORS origins in `backend/app/config.py` or via the `CORS_ORIGINS` environment variable to include your Northflank backend URL:
+
+```env
+CORS_ORIGINS=https://x-ai-explainable-ai.vercel.app,https://your-northflank-url.uc.r.appspot.com
+```
+
 ## 🔐 Security Considerations
 
 - **Never commit** `.env` files with API keys
-- **Use HTTPS** in production
+- **Use HTTPS** in production (Northflank provides this automatically)
 - **Validate inputs** on both frontend and backend
 - **Implement rate limiting** for API endpoints
 - **Regular updates** of dependencies

@@ -1,0 +1,41 @@
+{
+    "name": "mango-leaf-api",
+    "type": "web-service",
+    "docker": {
+        "context": ".",
+        "dockerfile": "Dockerfile"
+    },
+    "ports": [
+        {
+            "port": 8000,
+            "type": "http",
+            "name": "api-http"
+        }
+    ],
+    "env": {
+        "APP_NAME": "Mango Leaf Disease Detection API",
+        "APP_VERSION": "1.0.0",
+        "DEBUG": "false",
+        "HOST": "0.0.0.0",
+        "PORT": "8000",
+        "DATABASE_URL": "sqlite:///:memory:",
+        "DISABLE_DB_OPERATIONS": "true",
+        "MODEL_PATH": "models/vit_mango_quantized.pth",
+        "HF_REPO_ID": "Saurabh7Goku/vit-mango-leaf-disease",
+        "HF_FILENAME": "vit_mango_quantized.pth",
+        "GEMINI_API_KEY": "",
+        "CORS_ORIGINS": "https://x-ai-explainable-ai.vercel.app,https://*.vercel.app",
+        "LOG_LEVEL": "INFO"
+    },
+    "resources": {
+        "cpu": 1,
+        "memory": "2Gi",
+        "disk": "5Gi"
+    },
+    "health": {
+        "path": "/",
+        "interval": 30,
+        "timeout": 10,
+        "initialDelay": 60
+    }
+}

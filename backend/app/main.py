@@ -171,16 +171,16 @@ if __name__ == "__main__":
     import os
     import torch
     
-    # Optimization for 512MB RAM instances (Render Free Tier)
+    # Optimization for limited RAM instances
     torch.set_num_threads(1)
     
-    # Priority for Render's injected PORT environment variable
+    # Priority for cloud platform's injected PORT environment variable
     server_port = int(os.environ.get("PORT", settings.port))
     server_host = settings.host
     
     # EXTREMELY IMPORTANT: Force reload=False in production (it consumes double RAM)
-    # We detect production if PORT is provided by Render
-    is_prod = os.environ.get("PORT") is not None
+    # We detect production if PORT or NORTHFLANK_SERVICE_ID is provided
+    is_prod = os.environ.get("PORT") is not None or os.environ.get("NORTHFLANK_SERVICE_ID") is not None
     should_reload = settings.debug if not is_prod else False
     
     logger.info(f"🚀 Starting Mango Leaf API on {server_host}:{server_port}")

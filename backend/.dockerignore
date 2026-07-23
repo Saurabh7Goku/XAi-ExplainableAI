@@ -1,0 +1,55 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+*.egg
+
+# Virtual Environment
+venv/
+env/
+.venv/
+
+# Environment Variables
+.env
+.env.local
+.env.production
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Dataset (too large for Docker build)
+dataset/
+
+# Training scripts (not needed in production)
+training/
+scripts/
+
+# Logs
+logs/
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Notebooks
+*.ipynb
+
+# Documentation
+MODEL_ARCHITECTURE.md
+README.md
+
+# Docker files
+Dockerfile
+.dockerignore
+northflank.json

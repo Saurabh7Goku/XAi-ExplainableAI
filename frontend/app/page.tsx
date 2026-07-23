@@ -59,12 +59,12 @@ export default function Home() {
 
         <div className="relative max-w-7xl mx-auto px-2 py-10 md:py-28 text-center">
           <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold text-white mb-6 leading-tight">
-            <span className="inline-block animate-fade-in-up">Mango</span>{' '}
-            <span className="inline-block animate-fade-in-up" style={{ animationDelay: '0.1s' }}>Leaf</span>{' '}
+            <span className="inline-block animate-fade-in-up">Unlocking</span>{' '}
+            <span className="inline-block animate-fade-in-up" style={{ animationDelay: '0.1s' }}>AI</span>{' '}
             <span className="inline-block bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-transparent animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
-              Disease
+              Vision
             </span>{' '}
-            <span className="inline-block animate-fade-in-up" style={{ animationDelay: '0.3s' }}>Detector</span>
+            <span className="inline-block animate-fade-in-up" style={{ animationDelay: '0.3s' }}>for Agriculture</span>
           </h1>
 
           <p className="text-xl md:text-2xl text-green-100 max-w-4xl mx-auto mb-12 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>

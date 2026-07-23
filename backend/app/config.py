@@ -48,8 +48,16 @@ class Settings(BaseSettings):
     max_file_size: int = 5 * 1024 * 1024  # 5MB
     allowed_extensions: Any = [".jpg", ".jpeg", ".png", ".webp"]
     
-    # CORS
-    cors_origins: Any = ["http://localhost:3000", "http://localhost:3001", "http://127.0.0.1:3000", "http://127.0.0.1:3001", "https://x-ai-explainable-ai.vercel.app"]
+    # CORS - Add your Northflank deployment URL here
+    cors_origins: Any = [
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:3001",
+        "https://x-ai-explainable-ai.vercel.app",
+        # Add your Northflank backend URL (e.g., https://mango-leaf-api--xxxxxx.uc.r.appspot.com)
+        # Or use wildcard for development: "*"
+    ]
     
     # Logging
     log_level: str = "INFO"
@@ -114,6 +122,6 @@ class ModelConfig:
     
     # LIME configuration - optimized for speed
     import os
-    IS_PRODUCTION = os.environ.get("PORT") is not None  # Render sets PORT in production
+    IS_PRODUCTION = os.environ.get("NORTHFLANK_SERVICE_ID") is not None or os.environ.get("PORT") is not None  # Northflank or Render
     LIME_NUM_SAMPLES = 50 if IS_PRODUCTION else 150  # Reduced for speed
     LIME_NUM_FEATURES = 5 if IS_PRODUCTION else 20   # Reduced for speed
